@@ -16,6 +16,7 @@ class PostQuerySet(models.QuerySet):
         ).order_by('-likes_amount')
         return most_popular_posts
 
+
     def fetch_with_comments_count(self):
         most_popular_posts = self
         most_popular_posts_ids = [post.id for post in most_popular_posts]
