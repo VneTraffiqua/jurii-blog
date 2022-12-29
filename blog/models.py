@@ -3,13 +3,48 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 
 
+class PostQuerySet(models.QuerySet):
+    def year(self, year):
+        post_at_year = self.filter(
+            published_at__year=year
+        ).order_by('published_at')
+        return post_at_year
+
+    def popular(self):
+        most_popular_posts = self.annotate(
+            likes_amount=models.Count('likes')
+        ).order_by('-likes_amount')
+        return most_popular_posts
+
+    def fetch_with_comments_count(self):
+        most_popular_posts = self
+        most_popular_posts_ids = [post.id for post in most_popular_posts]
+        post_with_comments = Post.objects.filter(
+            id__in=most_popular_posts_ids
+        ).annotate(comments_amount=models.Count('comments'))
+        ids_and_comments = post_with_comments.values_list('id',
+                                                          'comments_amount')
+        count_for_id = dict(ids_and_comments)
+        for post in most_popular_posts:
+            post.comments_amount = count_for_id[post.id]
+        return most_popular_posts
+
+
+class TagQuerySet(models.QuerySet):
+    def popular(self):
+        most_popular_tags = self.annotate(
+            posts_amount=models.Count('posts')
+        ).order_by('-posts_amount')
+        return most_popular_tags
+
+
 class Post(models.Model):
     title = models.CharField('Заголовок', max_length=200)
     text = models.TextField('Текст')
     slug = models.SlugField('Название в виде url', max_length=200)
     image = models.ImageField('Картинка')
     published_at = models.DateTimeField('Дата и время публикации')
-
+    objects = PostQuerySet.as_manager()
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -39,6 +74,7 @@ class Post(models.Model):
 
 class Tag(models.Model):
     title = models.CharField('Тег', max_length=20, unique=True)
+    objects = TagQuerySet.as_manager()
 
     def __str__(self):
         return self.title
