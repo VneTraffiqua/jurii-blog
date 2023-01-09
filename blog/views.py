@@ -20,7 +20,6 @@ def serialize_post(post):
 
 def serialize_post_optimized(post):
     tags = post.post_tags
-    print(tags)
     return {
         'title': post.title,
         'teaser_text': post.text[:200],
